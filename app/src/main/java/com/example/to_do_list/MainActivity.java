@@ -1,5 +1,6 @@
 package com.example.to_do_list;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,6 +10,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.PopupMenu;
+import android.widget.SearchView;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContract;
@@ -29,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     private int currentEditPosition = -1;
     private Button filterbtn;
     private CheckBox checkBox;
+    private SearchView searchView;
+    private TextView error;
     private TaskAdapter adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,16 +43,16 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recyclerViewTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         filterbtn = findViewById(R.id.filterBtn);
-
+        searchView = findViewById(R.id.searchView);
+        error = findViewById(R.id.error);
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task("Învață RecyclerView", "Înțelege cum funcționează Adapterul și ViewHolder-ul", true));
-        taskList.add(new Task("Pregătire interviu Bento", "Repetă conceptele fundamentale de Android", false));
-        taskList.add(new Task("Construiește To-Do List", "Scrie codul pas cu pas pentru aplicație", false));
-        taskList.add(new Task("Ia o pauză", "Meritată după atâta cod!", false));
+        taskList.add(new Task("Task1", "Task1 description", true));
+        taskList.add(new Task("Task2", "Task2 description", false));
+        taskList.add(new Task("Task3", "Task3 description", false));
+        taskList.add(new Task("Task4", "Task4 description", false));
 
 
 
-        // ... în interiorul lui onCreate, unde creai adaptorul vechi:
         adapter = new TaskAdapter(taskList, new TaskAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(int position){
@@ -129,7 +134,36 @@ public class MainActivity extends AppCompatActivity {
                 popupMenu.show();
             }
         });
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
 
+            @SuppressLint("SetTextI18n")
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                List<Task> searchedList = new ArrayList<>();
+                for(Task c : taskList){
+                    boolean matchesTitle = !c.getTitle().isEmpty() && c.getTitle().toLowerCase().contains(newText.toLowerCase());
+                    boolean matchesDesc = !c.getDescription().isEmpty() && c.getDescription().toLowerCase().contains(newText.toLowerCase());
+                    if(matchesTitle || matchesDesc){
+                        searchedList.add(c);
+                    }
+                }
+                if(searchedList.isEmpty()){
+                    recyclerView.setVisibility(View.GONE);
+                    error.setVisibility(View.VISIBLE);
+                    error.setText("No matching element");
+                }else{
+                    recyclerView.setVisibility(View.VISIBLE);
+                    error.setVisibility(View.GONE);
+                }
+                adapter.updateList(searchedList);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+        });
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
 
             @Override
@@ -144,6 +178,14 @@ public class MainActivity extends AppCompatActivity {
                 Task deletedTask = taskList.get(position);
 
                 taskList.remove(position);
+                if(taskList.isEmpty()){
+                    recyclerView.setVisibility(View.GONE);
+                    error.setVisibility(View.VISIBLE);
+                    error.setText("No matching element");
+                }else{
+                    recyclerView.setVisibility(View.VISIBLE);
+                    error.setVisibility(View.GONE);
+                }
                 adapter.notifyItemRemoved(position);
 
                 com.google.android.material.snackbar.Snackbar.make(recyclerView, "Task deleted", com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
